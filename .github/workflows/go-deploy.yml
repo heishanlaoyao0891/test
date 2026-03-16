@@ -1,0 +1,49 @@
+name: Go Gin 自动部署
+
+# 代码 push 到 main 分支时自动运行
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 拉取代码
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      # 2. 设置 Go 环境
+      - name: 设置 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22  #  Go 版本
+
+      # 3. 编译：生成 Linux 二进制文件（关键！）
+      - name: 编译 Go 项目
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gin-web main.go
+
+      # 4. 自动上传到服务器并重启
+      - name: 部署到云服务器
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_PRIVATE_KEY }}
+          script: |
+            # 进入服务器项目目录
+            cd /root/gin-web
+            
+            # 停止旧进程
+            pkill -f gin-web 2>/dev/null
+            
+            # 覆盖新的二进制文件
+            # 注意：这里我们直接从 GitHub 拉取最新代码再编译
+            git pull
+            CGO_ENABLED=0 GOOS=linux go build -o gin-web main.go
+            
+            # 后台启动新服务
+            nohup ./gin-web > app.log 2>&1 &
+            
+            echo "部署完成！"
