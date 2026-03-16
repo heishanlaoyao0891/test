@@ -26,10 +26,10 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_PRIVATE_KEY }}
           script: |
-            cd /root/gin-web
+            cd /root/gin-web/test
             echo "开始部署"
             git pull
-            CGO_ENABLED=0 GOOS=linux go build -o gin-web main.go
+            CGO_ENABLED=0 GOOS=linux go build -o test main.go
             echo "启动服务"
             ( ./gin-web > app.log 2>&1 & )
             sleep 2
